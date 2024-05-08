@@ -65,9 +65,9 @@ timestamps:true
 userSchema.pre("save", async function (next) {
       if(!this.isModified("pasword")) return next();  // syntax and logic
 
-    this.password = bcrypt.hash(this.password , 10)// password field ko lo aur encrypt karke save kar do
+    this.password = await bcrypt.hash(this.password , 10)// password field ko lo aur encrypt karke save kar do // password ka process jab complete hoga usme lagega time so await laga diya h 
      next()  //( problem khadi ho gai -- jab bhi data save hoga har baar password ko save karega i.e. har baar password encrytpt ni karana ( for that we have used if condition))
-
+                  
 })  // functioning me time lagta h is liye async laga diya h 
 // ye middleware h isliye flag - next ka access to hona hi chahiye 
 
@@ -112,5 +112,5 @@ userSchema.Schema.methods.generateRefreshToken = function(){
 }
 
 
-export const User = mongoose.model("User",userSchema)
+export const User = mongoose.model("User",userSchema)  // ye jo user h ye database se direct contact kar sakta he kyoki ye mongoose ke through bana h (and will use the user many times(ex. to check user already exist or not))
 
