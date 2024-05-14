@@ -33,7 +33,7 @@ const registerUser = asyncHandler( async (req ,res) =>{
 //     throw new ApiError(400,"fullname is required")
 //    }  check kar lenge saaare field aise hi or 2nd method is ...down
 
-if (
+if (  // check ki kahi empty string to pass ni kar di
     [fullName,email,username,password].some((field)=>
 field?.trim()==="")
 ) {
@@ -41,7 +41,7 @@ field?.trim()==="")
 
 }
 
-const existedUser = User.findOne({
+const existedUser = await User.findOne({
     $or: [{ username } , { email }]
 })
 
@@ -49,11 +49,20 @@ const existedUser = User.findOne({
     throw new ApiError(409, "User with email or username already exist")  // ApiError file bana ke rakhi h isliye hum ye use kar paa rhe h 
   }
 
+// console.log(req.files);   aise hi sab print karke dekh lo sab to know what we are getting(v-14 , 17:00)
 
 //4)for avatar  
 const avatarLocalPath = req.files?.avatar[0]?.path;  // file ko avatar bola h isliye avatar  in user.routes
 
-const coverImageLocalPath = req.files?.coverImage[0]?.path   //[0] jo first property he ho sakta h usse hame path mil jay
+// const coverImageLocalPath = req.files?.coverImage[0]?.path   //[0] jo first property he ho sakta h usse hame path mil jay
+
+// classic way to check coverimage he bhi ya nhi aur phir hum aage badhe
+
+let coverImageLocalPath;
+
+if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0) {
+    coverImageLocalPath = req.files.coverImage[0].path
+}
 
 if(!avatarLocalPath){
     throw new ApiError(400 , "Avatar file is required")

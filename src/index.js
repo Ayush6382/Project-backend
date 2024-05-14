@@ -9,7 +9,7 @@ import connectDB from "./db/index";
 
 
 dotenv.config({
-    path: './env'
+    path: './.env'
 })
 
 connectDB()

@@ -20,7 +20,9 @@ const uploadCloudinary = async (localFilePath) => {  // time lega isliye async l
         })   // ye upload karaya h aur upload karane me time lagega to await laga diya aur response ko hold kara diya variable me
 
         // file has been uploaded successfully
-        console.log("file is uploaded on cloudinary",response.url);
+        // console.log("file is uploaded on cloudinary",response.url);   // video postman time --> 14:00 min 
+       fs.unlinkSync(localFilePath)   // to ab ummeed he ke future me jab file upload hogi to agar successfully upload ho gai to bhi remove ho jaygi aur agar error aaya to bhi remove ho jayga  // time-->15:00
+    
         return response;
 
     } catch(error){
