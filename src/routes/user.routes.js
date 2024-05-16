@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser } from "../controllers/user.controller.js";
+import { loginUser, registerUser } from "../controllers/user.controller.js";
 
 import { upload } from "../middlewares/multer.middleware.js";
 // middleware means jo bich me execute hota h (milte hue jana )
@@ -18,7 +18,15 @@ router.route("/register").post(
         maxCount:1
        }
     ]),
-    registerUser)
+    registerUser
+)
 
+  // middleware likhe kaise jaate h (52:00)
+
+    router.route("/login").post(loginUser)
+
+// secured routes
+
+router.route("/logout").post(verifyJWT , logoutUser)
 
 export default router

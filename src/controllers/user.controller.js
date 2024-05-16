@@ -9,6 +9,26 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";  // for 5th point(u
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
+const generateAccessAndRefereshTokens = async(userId) => {
+    try{
+        const user = await User.findById(userId)// user ka document aa gaya h and we will generate token in next line 
+        const accessToken = user.generateAccessAndRefereshTokens()
+        const refreshToken = user.generateRefreshToken()
+
+        // refresh token ko database me kaise daale (user joh vo object h , isme saari properties h ) so object ke ander value kaise add karte h 
+
+        user.refreshToken = refreshToken
+        await user.save({validateBeforeSave : false})// save bhi karana padega (mongoose se aaya h save) 23:00 time  (database ka operation h to await kara do)
+        
+        return {accessToken , refreshToken}
+
+        
+    } catch (error) {
+        throw new ApiError(500 , "Something went wrong while generating refresh and access token")
+     }
+
+} // yaha pe asyncHandler ki zarurat ni h kyoki koi web request handle nahi kar rhe h (ye vhi method create kar rhe h access token ka )
+
 const registerUser = asyncHandler( async (req ,res) =>{
      
     // get user details from frontend
@@ -109,6 +129,105 @@ return res.status(201).json(
 })   // ye method ka kaam he  register karega user ko
 // async ke ander req and res hota h  ..
 
-export {registerUser}
+const loginUser = asyncHandler(async (req,res) => {
+
+    // req body -> data
+    // username or email
+    // find the user
+    // password check
+    // access and refresh token
+    // send cookie (tokens ko cookies me bhejte h )
+
+//   1)
+
+      const {email , username , password} = req.body   // email ya username pe hoga abhi decide nahi kiya h
+      
+      if(!username || !email) {
+        throw new ApiError(400 , "Username or email is required")
+      }
+
+    const user = await User.findOne({
+        $or: [{username} , {email}]
+    })   // uper jo user import kiya h whi user h
+     
+    if(!user) {
+        throw new ApiError(404 , "User does not exist")
+    }
+
+// User mongodb mongoose ka ek object h to hme ye use nahi karna h (capital U)wala  ,  findOne method jo h ye mongoose se available h (time 15:00 v-access token)
+
+const isPasswordValid = await user.isPasswordCorrect(password)  // binary
+
+if(!isPasswordValid) {
+    throw new ApiError(401 , "Invalid user credentials")
+}
+
+// for access and refresh token ye itna common h (will use it many times ) to isko seperate method me daal dete h   , ki jab bhi dono generate karna ho to ye method call kardo  
+
+const { accessToken , refreshToken} = await generateAccessAndRefereshTokens(user._id)  // generate access me time lag sakta he to await laga // is method se 2 milenge aur humne unko variable me store kar liya
+
+
+const loggedInUser = await User.findById(user._id).select("-password -refreshToken") // ye field nahi chahiye // step optional tha  // user ko password nahi bhejna chahiye
+
+// ab cookies me bhejo(6th)(28:00)
+
+    const options = {
+        httpOnly: true, 
+        secure:true
+
+        // bydefault cookies ko koi bhi modify kar sakta h frontend se but ye dono se cookies sirf server se modifyable hoti h 
+    }
+
+    return res.status(200)
+    .cookie("accessToken", accessToken , options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(    // sending json response
+        new ApiResponse(
+            200,
+            {
+                user:loggedInUser , accessToken,refreshToken
+            },
+            "User logged In Successfully"
+        )
+    )
+
+})
+
+// hum user ko logout nahi karwa paa rhe the isliye middleware banaya kyoki access ni tha merepass
+const logoutUser = asyncHandler(async(req,res) => { // think ki jab logout pe click karega to logout kar kaise sakta hu  // 35:00
+
+    //  req.user._id  // id aa gai -> userobject le aunga -> and then refresh token delete kar dunga or log out ho jayga
+    
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {  // opetrator h 
+                refreshToken:undefined
+            }
+        },
+        {
+            new:true
+        }
+    )
+
+    const options = {
+        httpOnly: true, 
+        secure:true
+    }
+
+    return res
+    .status(200)
+    .clearCookies("accessToken" , options)
+    .clearCookies("refreshToken" , options)
+    .json(new ApiResponse(200 , {} , "User logged Out"))
+
+})
+
+
+
+export {registerUser ,
+    loginUser,
+    logoutUser
+}
 
 
