@@ -5,7 +5,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model";
 
-export const verifyJWT = asyncHandler(async(req,res,next) => {
+export const verifyJWT = asyncHandler(async(req,_,next) => {
 // next() ka kaam h ke apna kaam to ho gaya h khatam , isko aage jaha pe aage leke jana h jao , agle middleware me leke jana h to leke jao ya response me leke jao ...
 
   try {

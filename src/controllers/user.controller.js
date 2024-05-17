@@ -8,6 +8,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";  // for 5th point(u
 
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+import jwt from "jsonwebtoken" 
 
 const generateAccessAndRefereshTokens = async(userId) => {
     try{
@@ -142,7 +143,7 @@ const loginUser = asyncHandler(async (req,res) => {
 
       const {email , username , password} = req.body   // email ya username pe hoga abhi decide nahi kiya h
       
-      if(!username || !email) {
+      if(!(username || email)) {
         throw new ApiError(400 , "Username or email is required")
       }
 
@@ -223,7 +224,35 @@ const logoutUser = asyncHandler(async(req,res) => { // think ki jab logout pe cl
 
 })
 
+// v - 16   
+const refreshAccessToken = asyncHandler(async (req,res) => {
+  // refreshtoken kaha se aayga ==> cookies se access kar sakte ho   
+})
 
+const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+if(incomingRefreshToken) { // refreshtoken nahi mila to --> if condition laga diya
+    throw new ApiError(401 , "unauthorized request")  // kyoki token hi sahi ni h 
+}
+
+// ab incoming token ko verify bhi karna padega , verify hone ke baad decoded token milega
+
+const decodedToken = jwt.verify(
+    incomingRefreshToken , process.env.REFRESH_TOKEN_SECRET
+)
+ 
+// mongodb se _id ki help se user ki information le sakte h  // kaunsa user find karna h vo decodedtoken me rakha h // await because database to dusre continent me hi hota h 
+const user = await User.findById(decodedToken?._id)
+
+  if(!user) {//agar user nahi h to if laga diya
+    throw new ApiError(401 , "Invalid refresh token")   
+  }
+
+   if(incomingRefreshToken !== user?.refreshToken) {
+    throw new ApiError(401 , "Refresh token is expired or used")
+   }
+
+   
 
 export {registerUser ,
     loginUser,
