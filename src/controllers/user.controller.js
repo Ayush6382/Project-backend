@@ -139,7 +139,7 @@ const loginUser = asyncHandler(async (req,res) => {
     // access and refresh token
     // send cookie (tokens ko cookies me bhejte h )
 
-//   1)
+//   1) 
 
       const {email , username , password} = req.body   // email ya username pe hoga abhi decide nahi kiya h
       
@@ -237,26 +237,51 @@ if(incomingRefreshToken) { // refreshtoken nahi mila to --> if condition laga di
 
 // ab incoming token ko verify bhi karna padega , verify hone ke baad decoded token milega
 
-const decodedToken = jwt.verify(
-    incomingRefreshToken , process.env.REFRESH_TOKEN_SECRET
-)
- 
-// mongodb se _id ki help se user ki information le sakte h  // kaunsa user find karna h vo decodedtoken me rakha h // await because database to dusre continent me hi hota h 
-const user = await User.findById(decodedToken?._id)
+try {
+    const decodedToken = jwt.verify(
+        incomingRefreshToken , process.env.REFRESH_TOKEN_SECRET
+    )
+     
+    // mongodb se _id ki help se user ki information le sakte h  // kaunsa user find karna h vo decodedtoken me rakha h // await because database to dusre continent me hi hota h 
+    const user = await User.findById(decodedToken?._id)
+    
+      if(!user) {//agar user nahi h to if laga diya
+        throw new ApiError(401 , "Invalid refresh token")   
+      }
+    
+       if(incomingRefreshToken !== user?.refreshToken) {
+        throw new ApiError(401 , "Refresh token is expired or used")
+       }
+    
+       const options = {  // cookies me rakhna h token to option generate karna padenge(we can declare these global also because kaafi baar use aa rhe h ye)
+        httpOnly:true,
+        secure:true
+       }
+    
+       // ab generate kar rhe h
+       const {accessToken , newRefreshToken} = await generateAccessAndRefereshTokens(user._id) // time lagega kyoki database me save bhi ho rha h 
+    
+    
+       return res
+       .status(200)
+       .cookie("accessToken" , accessToken , options)
+       .cookie("refreshToken" , newRefreshToken , options)
+       .json(
+        new ApiResponse(
+            200,
+            {accessToken , refreshToken : newRefreshToken},"Access token refreshed"
+        )
+       )
+} catch (error) {
+    throw new ApiError(401 , error?.message || "Invalid refresh token")
+}
 
-  if(!user) {//agar user nahi h to if laga diya
-    throw new ApiError(401 , "Invalid refresh token")   
-  }
-
-   if(incomingRefreshToken !== user?.refreshToken) {
-    throw new ApiError(401 , "Refresh token is expired or used")
-   }
-
-   
+})
 
 export {registerUser ,
     loginUser,
-    logoutUser
+    logoutUser,
+    refreshAccessToken
 }
 
 
